@@ -63,9 +63,11 @@ jobs:
             docker stop mediguide-app || true
             docker rm mediguide-app || true
             
-            # Run the new container with GPU access
+            # Run the new container with GPU access and persistent storage volumes
             docker run -d --name mediguide-app \
               --gpus all \
               -p 8080:8080 \
+              -v $HOME/rag_data:/app/data \
+              -v $HOME/rag_indexes:/app/indexes \
               --restart unless-stopped \
               ghcr.io/$REPO_LOWER:latest
