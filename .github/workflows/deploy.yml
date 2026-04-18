@@ -54,17 +54,17 @@ jobs:
             REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
             
             # Login to GitHub Container Registry on the VM
-            echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Pull the latest image
-            sudo docker pull ghcr.io/$REPO_LOWER:latest
+            docker pull ghcr.io/$REPO_LOWER:latest
             
             # Stop the existing container if it exists
-            sudo docker stop mediguide-app || true
-            sudo docker rm mediguide-app || true
+            docker stop mediguide-app || true
+            docker rm mediguide-app || true
             
             # Run the new container with GPU access
-            sudo docker run -d --name mediguide-app \
+            docker run -d --name mediguide-app \
               --gpus all \
               -p 8080:8080 \
               --restart unless-stopped \
