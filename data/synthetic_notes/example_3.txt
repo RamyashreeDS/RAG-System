@@ -1,0 +1,27 @@
+DISCHARGE SUMMARY
+
+Chief Complaint: Altered mental status and fever
+
+History of Present Illness:
+72 y/o female w/ PMH of DM2, HTN, and recurrent UTIs presented from SNF w/ AMS, fever to 39.1C, and dysuria x 2 days. UA showed many bacteria and WBCs. UCx grew E. coli. Blood cultures NGTD. 
+Pt treated for urosepsis. IV fluids given. Started on IV ceftriaxone, transitioned to oral ciprofloxacin after clinical improvement.
+
+Assessment:
+1. Urosepsis secondary to E. coli UTI — completed 3 days IV abx. Transitioning to PO cipro. 7-day total course.
+2. AKI on CKD — Cr peaked at 2.4, trending back to baseline of 1.5. Monitor outpt.
+3. DM2 — insulin sliding scale used in-house. HbA1c 8.3%. Endocrine recommends uptitrating metformin.
+4. HTN — lisinopril held during AKI. Restart as outpt when Cr stable.
+
+Discharge Medications:
+Ciprofloxacin 500 mg PO bid x 4 more days (finish the full course)
+Metformin 1000 mg PO bid (restarted — hold if Cr rises)
+Lisinopril 10 mg PO daily (restart once PCP confirms Cr stable)
+Tylenol 500 mg PO q6h PRN for fever or pain — do NOT exceed 3g/day
+
+Follow-up Instructions:
+PCP appointment in 3 days for Cr recheck and BP check.
+Repeat urinalysis and culture at PCP visit.
+Do NOT stop the antibiotic early even if feeling better.
+
+Warning Signs:
+Return to ED if: fever comes back, new confusion, difficulty urinating, severe abdominal pain, rash, or inability to keep medication down.
