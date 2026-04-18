@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediGuide — Your Health Companion</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="app" class="app">
+
+    <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="logo">
+          <div class="logo-icon">🏥</div>
+          <div class="logo-text">
+            <div class="logo-name">MediGuide</div>
+            <div class="logo-sub">Health Companion</div>
+          </div>
+        </div>
+        <button class="new-chat-btn" id="new-chat-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11H13V5a1 1 0 0 0-2 0v6H5a1 1 0 0 0 0 2h6v6a1 1 0 0 0 2 0v-6h6a1 1 0 0 0 0-2z"/></svg>
+          New Chat
+        </button>
+
+        <!-- Mode tabs -->
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-mode="discharge" id="tab-discharge">
+            <span>📋</span> Discharge Note
+          </button>
+          <button class="mode-tab" data-mode="healthqa" id="tab-healthqa">
+            <span>🩺</span> Health Q&amp;A
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-history">
+        <div class="history-label">Recent Conversations</div>
+        <div class="history-list" id="history-list">
+          <div class="history-empty">Your conversations will appear here</div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="theme-btn" id="theme-btn">
+          <span id="theme-icon">🌙</span>
+          <span id="theme-label">Dark Mode</span>
+        </button>
+        <div class="privacy-badge">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5l-9-4z"/></svg>
+          Everything stays on your device
+        </div>
+      </div>
+    </nav>
+
+    <!-- ── Main area ───────────────────────────────────────────────────── -->
+    <main class="main" id="main">
+
+      <!-- Mobile header -->
+      <header class="mobile-header">
+        <button class="hamburger" id="hamburger">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+        <div class="mobile-logo">🏥 MediGuide</div>
+        <button class="mobile-new" id="mobile-new">＋</button>
+      </header>
+
+      <!-- Chat / Welcome area -->
+      <div class="chat-area" id="chat-area">
+
+        <!-- Welcome: Discharge Note mode -->
+        <div class="welcome" id="welcome-discharge">
+          <div class="welcome-hero">
+            <div class="welcome-badge">AI-Powered • Local • Private</div>
+            <h1 class="welcome-title">
+              Hi there! 👋 I'm MediGuide.
+            </h1>
+            <p class="welcome-subtitle">
+              Paste your hospital discharge note below and I'll translate all the
+              medical language into clear, simple words you can actually use.
+              I'll explain your diagnosis, medications, follow-up steps, and
+              warning signs — all in plain English.
+            </p>
+          </div>
+
+          <div class="sample-section">
+            <div class="sample-label">Try a sample discharge note →</div>
+            <div class="sample-grid" id="sample-grid">
+              <div class="sample-skeleton"></div>
+              <div class="sample-skeleton"></div>
+              <div class="sample-skeleton"></div>
+            </div>
+          </div>
+
+          <div class="welcome-features">
+            <div class="feature-pill">🔒 100% local — no cloud</div>
+            <div class="feature-pill">📚 Based on medical databases</div>
+            <div class="feature-pill">🎓 6th-grade reading level</div>
+            <div class="feature-pill">⚡ Instant responses</div>
+          </div>
+        </div>
+
+        <!-- Welcome: Health Q&A mode -->
+        <div class="welcome" id="welcome-healthqa" style="display:none">
+          <div class="welcome-hero">
+            <div class="welcome-badge welcome-badge-qa">Everyday Health • Home Care • Expert Guidance</div>
+            <h1 class="welcome-title">
+              Got a health question? 🩺
+            </h1>
+            <p class="welcome-subtitle">
+              Ask me anything about everyday health concerns — from a sore throat or headache
+              to managing a chronic condition. I'll help you understand your symptoms,
+              try home remedies safely, and know exactly when it's time to see a doctor.
+            </p>
+          </div>
+
+          <div class="sample-section">
+            <div class="sample-label">Common questions →</div>
+            <div class="sample-grid" id="qa-sample-grid">
+              <div class="sample-skeleton"></div>
+              <div class="sample-skeleton"></div>
+              <div class="sample-skeleton"></div>
+              <div class="sample-skeleton"></div>
+            </div>
+          </div>
+
+          <div class="welcome-features">
+            <div class="feature-pill">🏠 Home care tips</div>
+            <div class="feature-pill">🩺 When to see a doctor</div>
+            <div class="feature-pill">📚 Medical database backed</div>
+            <div class="feature-pill">🔒 100% private</div>
+          </div>
+        </div>
+
+        <!-- Messages list -->
+        <div class="messages" id="messages"></div>
+      </div>
+
+      <!-- Input area -->
+      <div class="input-area" id="input-area">
+        <div class="input-wrapper">
+          <!-- Contextual suggestion chips -->
+          <div class="input-suggestions" id="input-suggestions"></div>
+          <!-- Spell correction bar -->
+          <div class="spell-bar" id="spell-bar" style="display:none"></div>
+          <div class="input-box" id="input-box">
+            <textarea
+              id="note-input"
+              class="note-textarea"
+              placeholder="Paste your discharge note here… or click a sample above"
+              rows="3"
+              spellcheck="true"
+            ></textarea>
+            <div class="input-toolbar">
+              <label class="upload-btn" for="file-input" title="Upload: PDF · DOCX · TXT · PNG · JPG · TIFF · WEBP" id="upload-btn-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-3-7H9v-2h6v2zm0 4H9v-2h6v2z"/></svg>
+                Upload file
+              </label>
+              <input type="file" id="file-input" accept=".txt,.pdf,.docx,.png,.jpg,.jpeg,.bmp,.tiff,.tif,.webp,.gif" hidden />
+              <div class="toolbar-right">
+                <span class="input-hint" id="input-hint">Ctrl+Enter to send</span>
+                <button class="send-btn" id="send-btn">
+                  Send
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <p class="disclaimer">
+            MediGuide is an educational tool. Always follow your healthcare provider's instructions.
+            This is not a substitute for professional medical advice.
+          </p>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Message template (hidden) -->
+  <template id="msg-user-tpl">
+    <div class="message message-user">
+      <div class="msg-avatar msg-avatar-user">You</div>
+      <div class="msg-body">
+        <div class="msg-note-preview"></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="msg-ai-tpl">
+    <div class="message message-ai">
+      <div class="msg-avatar msg-avatar-ai">🏥</div>
+      <div class="msg-body">
+        <div class="msg-status-bar">
+          <div class="status-steps"></div>
+        </div>
+        <div class="msg-stream"></div>
+        <div class="msg-sections" style="display:none"></div>
+        <div class="msg-footer" style="display:none">
+          <div class="msg-meta"></div>
+          <div class="msg-actions">
+            <button class="action-btn copy-btn" title="Copy response">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              Copy
+            </button>
+            <button class="action-btn sources-toggle" title="Show sources">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
+              <span class="sources-count"></span> Sources
+            </button>
+          </div>
+        </div>
+        <div class="sources-panel" style="display:none"></div>
+      </div>
+    </div>
+  </template>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

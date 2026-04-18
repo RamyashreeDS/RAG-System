@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+venv/
+.venv/
+env/
+.env
+
+# Data & indexes (large binary files — rebuild locally)
+indexes/
+data/raw/
+outputs/
+
+# Keep sample data
+!data/sample_discharge_note.txt
+!data/synthetic_notes/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Secrets / env files
+.env
+.env.*
+*.pem
+*.key
