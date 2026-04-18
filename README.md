@@ -227,3 +227,4 @@ MediGuide/
 **Image OCR not working** — Install Tesseract: `brew install tesseract` (macOS) or `apt install tesseract-ocr` (Linux).
 
 **Port already in use** — Run `python run_app.py --port 8081` or `pkill -f uvicorn` to free port 8080.
+
