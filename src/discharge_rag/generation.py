@@ -148,7 +148,12 @@ Retrieved medical evidence:
 
 Patient's follow-up question: {question}
 
-Answer the patient's question now directly in a conversational tone. Do not use '##' section headers.
+Answer the patient's question now. Every claim must come from the retrieved context above.
+
+You MUST use EXACTLY these three markdown headings in order to structure your response:
+## 💡 Direct Answer
+## 📝 Practical Advice
+## 🩺 Medical Guidance
 """
 
     return f"""{SYSTEM_PROMPT}
@@ -161,8 +166,11 @@ Retrieved context from DischargeRAG corpus:
 
 Write the patient-facing explanation now. Every claim must come from the retrieved context above.
 
-Start your entire response exactly with:
+You MUST use EXACTLY these four markdown headings in order to structure your response:
 ## 🔍 Diagnosis Explained
+## 💊 Your Medications
+## 📅 Follow-up Instructions
+## 🚨 Warning Signs
 """
 
 
@@ -355,8 +363,11 @@ Retrieved context from medical knowledge base:
 
 Answer the patient's question now. Every claim must come from the retrieved context above.
 
-Start your entire response exactly with:
+You MUST use EXACTLY these four markdown headings in order to structure your response:
 ## 🤔 What This Could Be
+## 🏠 Home Care Tips
+## 🩺 When to See a Doctor
+## 🚨 Go to the ER If
 """
 
 
