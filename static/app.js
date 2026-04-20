@@ -376,7 +376,7 @@ function finalizeMessage(el, fullText, retrieved, doneData, sectionDefs) {
       hdr.addEventListener('click', () => hdr.closest('.section-card').classList.toggle('collapsed'));
     });
   } else {
-    sectionsEl.innerHTML = `<div class="msg-stream visible" style="display:block">${escHtml(fullText)}</div>`;
+    sectionsEl.innerHTML = `<div class="msg-stream visible markdown-body" style="display:block; padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: var(--bg-alt);">${formatContent(fullText)}</div>`;
     sectionsEl.style.display = 'block';
   }
 
