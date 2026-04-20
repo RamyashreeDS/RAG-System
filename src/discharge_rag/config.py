@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
+import os
 from typing import Dict, List, Optional
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,8 +38,8 @@ class Config:
     embedding_model: str = "pritamdeka/S-PubMedBert-MS-MARCO"
     dense_model: str = "pritamdeka/S-PubMedBert-MS-MARCO"
 
-    ollama_model: str = "llama3.1:8b"
-    ollama_url: str = "http://localhost:11434/api/generate"
+    ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+    ollama_url: str = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
 
     use_section_filtering: bool = True
     use_source_filtering: bool = True

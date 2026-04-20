@@ -67,6 +67,7 @@ jobs:
             docker run -d --name mediguide-app \
               --gpus all \
               -p 80:8080 \
+              -e OLLAMA_URL="http://172.17.0.1:11434/api/generate" \
               -v $HOME/rag_data:/app/data \
               -v $HOME/rag_indexes:/app/indexes \
               --restart unless-stopped \
