@@ -192,10 +192,17 @@ function parseSections(text, sectionDefs, isStreaming = false) {
     if (line.startsWith('## ') || line.startsWith('# ')) {
       if (currentSection) {
         const content = contentBuf.join('\n').trim();
-        if (content) result.push({ ...currentSection, content });
+        if (content || isStreaming) result.push({ ...currentSection, content });
         contentBuf.length = 0;
       }
-      currentSection = defs.find(s => line.includes(s.label)) || null;
+      
+      let matched = defs.find(s => line.includes(s.label));
+      if (!matched) {
+        // Fallback: If AI generates a custom header, build a dynamic UI card for it
+        const customTitle = line.replace(/#+\s*/, '').trim();
+        matched = { key: 'custom', icon: '🔹', label: customTitle, cls: 'section-card-diag', delay: 0 };
+      }
+      currentSection = matched;
     } else if (currentSection) {
       contentBuf.push(line);
     }
@@ -384,7 +391,7 @@ function finalizeMessage(el, fullText, retrieved, doneData, sectionDefs) {
       hdr.addEventListener('click', () => hdr.closest('.section-card').classList.toggle('collapsed'));
     });
   } else {
-    sectionsEl.innerHTML = `<div class="msg-stream visible markdown-body" style="display:block; padding: 18px 20px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow);">${formatContent(fullText)}</div>`;
+    sectionsEl.innerHTML = `<div class="msg-stream visible markdown-body" style="display:block; padding: 18px 20px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow);">${formatContent(fullText.replace(/## /g, ''))}</div>`;
     sectionsEl.style.display = 'block';
   }
 
