@@ -213,7 +213,7 @@ function parseSections(text, sectionDefs, isStreaming = false) {
   }
   
   if (isStreaming) return result;
-  return result.length >= 2 ? result : null;
+  return result.length >= 1 ? result : null;
 }
 
 function formatContent(text) {
