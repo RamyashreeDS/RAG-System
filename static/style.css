@@ -584,6 +584,21 @@ body {
 
 .msg-stream.visible { display: block; }
 
+.msg-stream.freeform { white-space: normal; }
+.msg-stream.freeform h3,
+.msg-stream.freeform h4,
+.msg-stream.freeform h5 {
+  color: var(--text);
+  margin: 14px 0 6px;
+  font-weight: 600;
+}
+.msg-stream.freeform h3 { font-size: 15px; }
+.msg-stream.freeform h4 { font-size: 14px; }
+.msg-stream.freeform p  { margin: 0 0 8px; }
+.msg-stream.freeform ul { padding-left: 20px; margin: 0 0 10px; }
+.msg-stream.freeform li { margin-bottom: 4px; }
+.msg-stream.freeform strong { color: var(--text); font-weight: 600; }
+
 .typing-cursor {
   display: inline-block;
   width: 2px;

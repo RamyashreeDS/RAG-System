@@ -90,7 +90,7 @@ async def stream_ollama(prompt: str, model: str, url: str) -> AsyncGenerator[str
         "model": model,
         "prompt": prompt,
         "stream": True,
-        "options": {"temperature": 0.15},
+        "options": {"temperature": 0.05, "top_p": 0.9, "repeat_penalty": 1.1},
     }
     with requests.post(url, json=payload, stream=True, timeout=180) as r:
         r.raise_for_status()
@@ -296,7 +296,7 @@ async def healthqa(req: HealthQARequest):
 
         try:
             yield sse("status", {"text": "Searching medical knowledge base…", "step": 1})
-            retrieved = p.retrieve_for_note(req.question)
+            retrieved = p.retrieve_for_question(req.question)
             yield sse("sources", slim_retrieved(retrieved))
             await asyncio.sleep(0.05)
 

@@ -162,34 +162,59 @@ function parseSSE(buffer) {
 
 // ── Section definitions ───────────────────────────────────────────────────────
 const DISCHARGE_SECTIONS = [
-  { key: 'diag', icon: '🔍', label: 'Diagnosis Explained', cls: 'section-card-diag', delay: 0 },
-  { key: 'med',  icon: '💊', label: 'Your Medications',    cls: 'section-card-med',  delay: 1 },
-  { key: 'fol',  icon: '📅', label: 'Follow-up Actions',   cls: 'section-card-fol',  delay: 2 },
-  { key: 'warn', icon: '⚠️', label: 'Warning Signs',       cls: 'section-card-warn', delay: 3 },
+  { key: 'diag', icon: '🔍', label: 'Diagnosis Explained', cls: 'section-card-diag', delay: 0, match: /diagnos/i },
+  { key: 'med',  icon: '💊', label: 'Your Medications',    cls: 'section-card-med',  delay: 1, match: /medicat|drug|prescri/i },
+  { key: 'fol',  icon: '📅', label: 'Follow-up Actions',   cls: 'section-card-fol',  delay: 2, match: /follow[\s-]*up|next step|after[\s-]*care/i },
+  { key: 'warn', icon: '⚠️', label: 'Warning Signs',       cls: 'section-card-warn', delay: 3, match: /warning|red[\s-]*flag|when to call|emergency|watch out/i },
 ];
 
 const HEALTHQA_SECTIONS = [
-  { key: 'what', icon: '🤔', label: 'What This Could Be',   cls: 'section-card-diag', delay: 0 },
-  { key: 'home', icon: '🏠', label: 'Home Care Tips',        cls: 'section-card-med',  delay: 1 },
-  { key: 'doc',  icon: '🩺', label: 'When to See a Doctor',  cls: 'section-card-fol',  delay: 2 },
-  { key: 'er',   icon: '🚨', label: 'Go to the ER If',       cls: 'section-card-warn', delay: 3 },
+  { key: 'what', icon: '🤔', label: 'What This Could Be',   cls: 'section-card-diag', delay: 0, match: /what\s+this|could be|possible cause|overview|about your/i },
+  { key: 'home', icon: '🏠', label: 'Home Care Tips',        cls: 'section-card-med',  delay: 1, match: /home\s*care|self[\s-]*care|at home|home remed|tips/i },
+  { key: 'doc',  icon: '🩺', label: 'When to See a Doctor',  cls: 'section-card-fol',  delay: 2, match: /see a doctor|see your doctor|call your doctor|contact your|when to seek/i },
+  { key: 'er',   icon: '🚨', label: 'Go to the ER If',       cls: 'section-card-warn', delay: 3, match: /\bER\b|emergency|911|urgent|go to the hospital/i },
 ];
+
+// Match a markdown heading line against the section defs.
+// Strategy: exact-label substring first (strongest signal), then regex fallback.
+function matchSectionHeading(line, defs, alreadyMatched) {
+  const stripped = line.replace(/^#+\s*/, '').trim();
+  if (!stripped) return null;
+  for (const s of defs) {
+    if (alreadyMatched.has(s.key)) continue;
+    if (stripped.toLowerCase().includes(s.label.toLowerCase())) return s;
+  }
+  for (const s of defs) {
+    if (alreadyMatched.has(s.key)) continue;
+    if (s.match && s.match.test(stripped)) return s;
+  }
+  return null;
+}
 
 function parseSections(text, sectionDefs) {
   const defs = sectionDefs || (state.mode === 'healthqa' ? HEALTHQA_SECTIONS : DISCHARGE_SECTIONS);
   const lines = text.split('\n');
   const result = [];
+  const matched = new Set();
   let currentSection = null;
   const contentBuf = [];
 
   for (const line of lines) {
-    if (line.startsWith('## ') || line.startsWith('# ')) {
-      if (currentSection) {
-        const content = contentBuf.join('\n').trim();
-        if (content) result.push({ ...currentSection, content });
-        contentBuf.length = 0;
+    const isHeading = /^#{1,6}\s+/.test(line) || /^\*\*[^*]+\*\*:?\s*$/.test(line.trim());
+    if (isHeading) {
+      const next = matchSectionHeading(line, defs, matched);
+      if (next) {
+        if (currentSection) {
+          const content = contentBuf.join('\n').trim();
+          if (content) result.push({ ...currentSection, content });
+          contentBuf.length = 0;
+        }
+        currentSection = next;
+        matched.add(next.key);
+        continue;
       }
-      currentSection = defs.find(s => line.includes(s.label)) || null;
+      // Unrecognised heading — keep collecting into the current section as content
+      if (currentSection) contentBuf.push(line);
     } else if (currentSection) {
       contentBuf.push(line);
     }
@@ -205,19 +230,29 @@ function formatContent(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   let html = '';
   let inList = false;
+  const closeList = () => { if (inList) { html += '</ul>'; inList = false; } };
   for (const line of lines) {
+    const hMatch   = /^(#{1,6})\s+(.+)$/.exec(line);
+    const boldHdr  = /^\*\*(.+?)\*\*:?\s*$/.exec(line);
     const isBullet = /^[•\-\*]\s/.test(line);
     const isNum    = /^\d+\.\s/.test(line);
-    if (isBullet || isNum) {
+    if (hMatch) {
+      closeList();
+      const level = Math.min(hMatch[1].length + 2, 6);
+      html += `<h${level}>${md(hMatch[2])}</h${level}>`;
+    } else if (boldHdr && !isBullet) {
+      closeList();
+      html += `<h4>${md(boldHdr[1])}</h4>`;
+    } else if (isBullet || isNum) {
       if (!inList) { html += '<ul>'; inList = true; }
-      const content = line.replace(/^[•\-\*\d\.]+\s+/, '');
+      const content = line.replace(/^[•\-\*]\s+|^\d+\.\s+/, '');
       html += `<li>${md(content)}</li>`;
     } else {
-      if (inList) { html += '</ul>'; inList = false; }
+      closeList();
       html += `<p>${md(line)}</p>`;
     }
   }
-  if (inList) html += '</ul>';
+  closeList();
   return html;
 }
 
@@ -376,7 +411,7 @@ function finalizeMessage(el, fullText, retrieved, doneData, sectionDefs) {
       hdr.addEventListener('click', () => hdr.closest('.section-card').classList.toggle('collapsed'));
     });
   } else {
-    sectionsEl.innerHTML = `<div class="msg-stream visible" style="display:block">${escHtml(fullText)}</div>`;
+    sectionsEl.innerHTML = `<div class="msg-stream visible freeform" style="display:block">${formatContent(fullText)}</div>`;
     sectionsEl.style.display = 'block';
   }
 
@@ -861,8 +896,15 @@ async function sendNote() {
     ? `${state.lastNote.slice(0, 2000)}\n\n--- Follow-up question: ${text}`
     : text;
 
-  // Update stored context
-  if (isDischarge && !isFollowUp) state.lastNote = text.slice(0, 5000);
+  // Short question in discharge mode → answer per-question via Q&A endpoint.
+  // The discharge template is structural (always 4 fixed sections) and cannot
+  // differentiate between "explain my diagnosis" and "warning symptoms", so
+  // short queries must route to /api/healthqa to get distinct answers.
+  const isShortQuestion = isDischarge && text.length < 300;
+  const useQAEndpoint   = !isDischarge || isShortQuestion;
+
+  // Update stored context — only treat long pastes as the "note" context
+  if (isDischarge && !isFollowUp && !isShortQuestion) state.lastNote = text.slice(0, 5000);
   if (!isDischarge) state.lastQATopic = text;
 
   const conv = {
@@ -888,11 +930,12 @@ async function sendNote() {
   let fullText = '';
   let retrieved = null;
   let streamStarted = false;
-  const sectionDefs = isDischarge ? DISCHARGE_SECTIONS : HEALTHQA_SECTIONS;
-  const endpoint = isDischarge ? '/api/explain' : '/api/healthqa';
-  const body = isDischarge
-    ? JSON.stringify({ note_text: apiText, use_ollama: true })
-    : JSON.stringify({ question: text, use_ollama: true });
+  const sectionDefs = useQAEndpoint ? HEALTHQA_SECTIONS : DISCHARGE_SECTIONS;
+  const endpoint    = useQAEndpoint ? '/api/healthqa' : '/api/explain';
+  const qaQuestion  = isFollowUp ? apiText : text;
+  const body = useQAEndpoint
+    ? JSON.stringify({ question: qaQuestion, use_ollama: true })
+    : JSON.stringify({ note_text: apiText, use_ollama: true });
 
   try {
     const resp = await fetch(endpoint, {
@@ -936,7 +979,9 @@ async function sendNote() {
             // Mode-specific recommendations — each stays in its own mode
             if (isDischarge && data.diagnoses?.length) {
               addDischargeRecs(data.diagnoses);
-            } else if (!isDischarge) {
+            } else if (isDischarge) {
+              addHealthQARecs(text);
+            } else {
               addHealthQARecs(text);
             }
             // Reset suggestions to mode defaults after response

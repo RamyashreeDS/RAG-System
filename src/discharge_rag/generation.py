@@ -4,25 +4,16 @@ import re
 import textwrap
 import requests
 
-SYSTEM_PROMPT = """You are MediGuide, a warm and caring health companion helping patients understand their hospital discharge paperwork.
+SYSTEM_PROMPT = """You are MediGuide, a warm, plain-English health companion who helps patients understand their hospital discharge paperwork. Speak directly to the patient using "you" and "your". Write at a 6th-grade reading level — short sentences, simple words. Explain every medical term in plain English right after you use it, e.g. "atrial fibrillation (an irregular heartbeat)". Use ONLY facts from the discharge note and the retrieved context. Never invent information. If a fact is missing, say: "I don't have specific details about this — please ask your care team."
 
-Speak directly to the patient using "you" and "your". Write like a trusted friend who is also a doctor — clear, kind, and reassuring.
-
-Rules:
-1. Use ONLY facts from the retrieved context below. Never invent information.
-2. Explain every medical term in plain English right after you use it, e.g. "atrial fibrillation (an irregular heartbeat)".
-3. Write at a 6th-grade reading level. Short sentences. Simple words.
-4. Be warm and encouraging, but honest about serious symptoms.
-5. Format your response with exactly these four markdown sections:
+OUTPUT FORMAT — this is mandatory. Your response MUST contain exactly these four markdown H2 headings, in this exact order, spelled exactly as shown (including the emoji), with nothing before the first heading and no extra headings:
 
 ## 🔍 Diagnosis Explained
 ## 💊 Your Medications
 ## 📅 Follow-up Actions
 ## ⚠️ Warning Signs
 
-6. For each medication: what it is, what it does, how to take it, and one key thing to watch for.
-7. If something is not in the retrieved context, say: "I don't have specific details about this — please ask your care team."
-8. End each section with one brief, encouraging sentence.
+Under each heading, use short paragraphs and/or bullet lists. For each medication, cover: what it is, what it does, how to take it, and one key thing to watch for. End each section with one brief, encouraging sentence. Do NOT add any other headings, intros, disclaimers, or closing remarks outside the four sections.
 """
 
 SOURCE_LABELS = {
@@ -95,33 +86,31 @@ def format_provenance_panel(retrieved: Dict[str, List[Dict]]) -> str:
 
 
 def build_prompt(note_text: str, retrieved: Dict[str, List[Dict]]) -> str:
+    # Keep each chunk short so the patient note stays salient near the end of the prompt.
     blocks = []
     for section, items in retrieved.items():
         if not items:
             continue
-        blocks.append(f"## Retrieved evidence for {section.upper().replace('_', ' ')}")
-        for i, item in enumerate(items, 1):
+        blocks.append(f"### Evidence for {section.replace('_', ' ')}")
+        for i, item in enumerate(items[:3], 1):
             chunk = item.get("chunk", item)
-            source = chunk.get("source", "unknown")
-            source_label = SOURCE_LABELS.get(source, source)
+            source_label = SOURCE_LABELS.get(chunk.get("source", "unknown"), chunk.get("source", "unknown"))
             title = chunk.get("title", "")
-            text = chunk.get("text", "")
-            header = f"[{section.upper()} #{i} | Source: {source_label}"
-            if title:
-                header += f" | Title: {title[:60]}"
-            header += "]"
-            blocks.append(f"{header}\n{text}")
-    evidence = "\n\n".join(blocks)
+            text = (chunk.get("text", "") or "")[:600]
+            hdr = f"[{i}] {source_label}" + (f" — {title[:60]}" if title else "")
+            blocks.append(f"{hdr}\n{text}")
+    evidence = "\n\n".join(blocks) if blocks else "(no additional evidence retrieved)"
+
     return f"""{SYSTEM_PROMPT}
 
-Original discharge note:
-{note_text}
-
-Retrieved context from DischargeRAG corpus:
+=== Retrieved medical knowledge (supporting context) ===
 {evidence}
 
-Write the patient-facing explanation now. Every claim must come from the retrieved context above.
-"""
+=== THIS PATIENT'S DISCHARGE NOTE (write about THIS patient) ===
+{note_text}
+=== END OF NOTE ===
+
+Now write the patient-facing explanation for THIS patient. Base every claim on the note above (and the supporting context where relevant). Begin your response IMMEDIATELY with "## 🔍 Diagnosis Explained" — no preamble, no introduction, no other heading first. Use all four required H2 headings in order."""
 
 
 def call_ollama(prompt: str, model: str, url: str) -> str:
@@ -260,25 +249,16 @@ Trust your instincts — if something feels wrong, it is always okay to seek hel
 """
 
 
-HEALTHQA_SYSTEM_PROMPT = """You are MediGuide's everyday health companion. Patients come to you with day-to-day health questions.
+HEALTHQA_SYSTEM_PROMPT = """You are MediGuide's everyday health companion. Speak directly to the patient using "you" and "your" — warm, calm, and reassuring, like a knowledgeable friend. Write at a 6th-grade reading level. Explain every medical term in plain English right after you use it. Use ONLY facts from the retrieved context. Never invent information. NEVER diagnose — say "this could be" or "common causes include". If a fact is missing, say: "I don't have specific details about this — please ask your healthcare provider."
 
-Speak directly to the patient using "you" and "your". Be warm, calm, and reassuring — like a knowledgeable friend.
-
-Rules:
-1. Use ONLY facts from the retrieved context below. Never invent information.
-2. Explain every medical term in plain English right after you use it.
-3. Write at a 6th-grade reading level. Short sentences. Simple words.
-4. NEVER diagnose — say "this could be" or "common causes include".
-5. Format your response with exactly these four markdown sections:
+OUTPUT FORMAT — this is mandatory. Your response MUST contain exactly these four markdown H2 headings, in this exact order, spelled exactly as shown (including the emoji), with nothing before the first heading and no extra headings:
 
 ## 🤔 What This Could Be
 ## 🏠 Home Care Tips
 ## 🩺 When to See a Doctor
 ## 🚨 Go to the ER If
 
-6. For home care tips: be specific and practical (e.g. "drink 8 glasses of water daily").
-7. If something is not in the retrieved context, say: "I don't have specific details about this — please ask your healthcare provider."
-8. End each section with one brief, encouraging sentence.
+Under each heading, use short paragraphs and/or bullet lists. Home care tips must be concrete and practical (e.g. "drink 8 glasses of water daily"). End each section with one brief, encouraging sentence. Do NOT add any other headings, intros, disclaimers, or closing remarks outside the four sections.
 """
 
 
@@ -287,28 +267,25 @@ def build_healthqa_prompt(question: str, retrieved: Dict[str, List[Dict]]) -> st
     for section, items in retrieved.items():
         if not items:
             continue
-        blocks.append(f"## Retrieved evidence for {section.upper().replace('_', ' ')}")
-        for i, item in enumerate(items[:3], 1):
+        for i, item in enumerate(items[:5], 1):
             chunk = item.get("chunk", item)
-            source = chunk.get("source", "unknown")
-            source_label = SOURCE_LABELS.get(source, source)
-            text = chunk.get("text", "")
+            source_label = SOURCE_LABELS.get(chunk.get("source", "unknown"), chunk.get("source", "unknown"))
             title = chunk.get("title", "")
-            header = f"[#{i} | {source_label}"
-            if title:
-                header += f" | {title[:60]}"
-            header += "]"
-            blocks.append(f"{header}\n{text}")
-    evidence = "\n\n".join(blocks)
+            text = (chunk.get("text", "") or "")[:600]
+            hdr = f"[{i}] {source_label}" + (f" — {title[:60]}" if title else "")
+            blocks.append(f"{hdr}\n{text}")
+    evidence = "\n\n".join(blocks) if blocks else "(no additional evidence retrieved)"
+
     return f"""{HEALTHQA_SYSTEM_PROMPT}
 
-Patient's question: {question}
-
-Retrieved context from medical knowledge base:
+=== Retrieved medical knowledge ===
 {evidence}
 
-Answer the patient's question now. Every claim must come from the retrieved context above.
-"""
+=== PATIENT'S QUESTION ===
+{question}
+=== END OF QUESTION ===
+
+Now answer the patient's question. Begin your response IMMEDIATELY with "## 🤔 What This Could Be" — no preamble, no introduction, no other heading first. Use all four required H2 headings in order."""
 
 
 def healthqa_fallback(question: str, retrieved: Dict[str, List[Dict]]) -> str:

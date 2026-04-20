@@ -71,6 +71,35 @@ class DischargeRAGPipeline:
             ]
         return outputs
 
+    def retrieve_for_question(self, question: str) -> Dict[str, List[Dict]]:
+        """Single-pass retrieval for free-form Q&A.
+
+        Unlike retrieve_for_note (which splits the query into diagnosis/medications/
+        follow_up/warning_signs with per-section source filters), Q&A uses the
+        verbatim question across the full corpus. PLABA chunks that are raw
+        QUESTION:/SOURCE: metadata blocks are dropped so the LLM doesn't
+        regurgitate them as "Question 1: ..." output.
+        """
+        results = self.retriever.search(
+            query=question,
+            top_k=self.cfg.top_k,
+            section="general",
+            allowed_sources=None,
+            similarity_threshold=self.cfg.similarity_threshold,
+        )
+        items: List[Dict] = []
+        for r in results:
+            text = (r.chunk.get("text") or "").lstrip()
+            if text.startswith("QUESTION:") or text.startswith("SOURCE:"):
+                continue
+            items.append({
+                "chunk": r.chunk,
+                "bm25_score": r.bm25_score,
+                "dense_score": r.dense_score,
+                "fused_score": r.fused_score,
+            })
+        return {"general": items}
+
     def explain(self, note_text: str, use_ollama: bool = True) -> Dict:
         processed = preprocess_note(note_text)
         retrieved = self.retrieve_for_note(note_text)

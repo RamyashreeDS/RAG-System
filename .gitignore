@@ -16,7 +16,12 @@ env/
 # Data & indexes (large binary files — rebuild locally)
 indexes/
 data/raw/
-outputs/
+
+# Keep outputs but exclude large intermediates
+outputs/evaluation.json
+!outputs/MediGuide_Presentation.pptx
+!outputs/MediGuide_Technical_Report.md
+!outputs/convert_report.sh
 
 # Keep sample data
 !data/sample_discharge_note.txt
