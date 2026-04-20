@@ -41,6 +41,8 @@ Rules:
 
 4. Write at a 6th-grade reading level. Short sentences. Simple words.
 5. If the answer is not in the context, say: "I don't have specific details about this — please ask your care team."
+6. Start your entire response exactly with:
+## 💡 Direct Answer
 """
 
 SOURCE_LABELS = {
@@ -158,6 +160,9 @@ Retrieved context from DischargeRAG corpus:
 {evidence}
 
 Write the patient-facing explanation now. Every claim must come from the retrieved context above.
+
+Start your entire response exactly with:
+## 🔍 Diagnosis Explained
 """
 
 
@@ -349,6 +354,9 @@ Retrieved context from medical knowledge base:
 {evidence}
 
 Answer the patient's question now. Every claim must come from the retrieved context above.
+
+Start your entire response exactly with:
+## 🤔 What This Could Be
 """
 
 
