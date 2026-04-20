@@ -25,6 +25,19 @@ Rules:
 8. End each section with one brief, encouraging sentence.
 """
 
+FOLLOWUP_SYSTEM_PROMPT = """You are MediGuide, a warm and caring health companion.
+
+A patient has asked a follow-up question regarding their hospital discharge note.
+Speak directly to the patient using "you" and "your". Write like a trusted friend who is also a doctor — clear, kind, and reassuring.
+
+Rules:
+1. Use ONLY facts from the retrieved context below, or from the provided discharge note. Never invent medical advice.
+2. Answer their specific question directly.
+3. DO NOT use markdown headers like "## " in your response. Just write a conversational reply.
+4. Write at a 6th-grade reading level. Short sentences. Simple words.
+5. If the answer is not in the context, say: "I don't have specific details about this — please ask your care team."
+"""
+
 SOURCE_LABELS = {
     "medlineplus": "MedlinePlus (National Library of Medicine)",
     "openfda":     "FDA Drug Label Database",
@@ -95,6 +108,7 @@ def format_provenance_panel(retrieved: Dict[str, List[Dict]]) -> str:
 
 
 def build_prompt(note_text: str, retrieved: Dict[str, List[Dict]]) -> str:
+    is_followup = "\n\n--- Follow-up question:" in note_text
     blocks = []
     for section, items in retrieved.items():
         if not items:
@@ -112,6 +126,24 @@ def build_prompt(note_text: str, retrieved: Dict[str, List[Dict]]) -> str:
             header += "]"
             blocks.append(f"{header}\n{text}")
     evidence = "\n\n".join(blocks)
+
+    if is_followup:
+        parts = note_text.split("\n\n--- Follow-up question:")
+        original_note = parts[0].strip()
+        question = parts[1].strip()
+        return f"""{FOLLOWUP_SYSTEM_PROMPT}
+
+Original discharge note context:
+{original_note}
+
+Retrieved medical evidence:
+{evidence}
+
+Patient's follow-up question: {question}
+
+Answer the patient's question now directly in a conversational tone. Do not use '##' section headers.
+"""
+
     return f"""{SYSTEM_PROMPT}
 
 Original discharge note:
@@ -167,6 +199,10 @@ def fallback_template(
     sections: Dict[str, str] | None = None,
 ) -> str:
     """Template-based generation used when Ollama is unavailable."""
+    is_followup = "\n\n--- Follow-up question:" in note_text
+    if is_followup:
+        question = note_text.split("\n\n--- Follow-up question:")[-1].strip()
+        return f"Regarding your follow-up question about: '{question}'...\n\n(Note: The AI processing server is currently offline or unreachable. A personalized natural language answer cannot be generated right now. Please refer to your paperwork directly!)"
 
     # Patient-facing sources only — avoids dumping raw research abstracts
     PATIENT_SOURCES = {"medlineplus", "openfda"}
