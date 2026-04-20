@@ -175,7 +175,13 @@ const HEALTHQA_SECTIONS = [
   { key: 'er',   icon: '🚨', label: 'Go to the ER If',       cls: 'section-card-warn', delay: 3 },
 ];
 
-function parseSections(text, sectionDefs) {
+const FOLLOWUP_SECTIONS = [
+  { key: 'ans',  icon: '💡', label: 'Direct Answer',    cls: 'section-card-diag', delay: 0 },
+  { key: 'tips', icon: '📝', label: 'Practical Advice', cls: 'section-card-med',  delay: 1 },
+  { key: 'doc',  icon: '🩺', label: 'Medical Guidance', cls: 'section-card-fol',  delay: 2 },
+];
+
+function parseSections(text, sectionDefs, isStreaming = false) {
   const defs = sectionDefs || (state.mode === 'healthqa' ? HEALTHQA_SECTIONS : DISCHARGE_SECTIONS);
   const lines = text.split('\n');
   const result = [];
@@ -196,8 +202,10 @@ function parseSections(text, sectionDefs) {
   }
   if (currentSection) {
     const content = contentBuf.join('\n').trim();
-    if (content) result.push({ ...currentSection, content });
+    if (content || isStreaming) result.push({ ...currentSection, content });
   }
+  
+  if (isStreaming) return result;
   return result.length >= 2 ? result : null;
 }
 
@@ -888,7 +896,7 @@ async function sendNote() {
   let fullText = '';
   let retrieved = null;
   let streamStarted = false;
-  const sectionDefs = isDischarge ? DISCHARGE_SECTIONS : HEALTHQA_SECTIONS;
+  const sectionDefs = isDischarge ? (isFollowUp ? FOLLOWUP_SECTIONS : DISCHARGE_SECTIONS) : HEALTHQA_SECTIONS;
   const endpoint = isDischarge ? '/api/explain' : '/api/healthqa';
   const body = isDischarge
     ? JSON.stringify({ note_text: apiText, use_ollama: true })
@@ -927,21 +935,49 @@ async function sendNote() {
             if (!streamStarted) {
               startStream(aiEl);
               streamStarted = true;
-              
-              // Apply safe formatting wrapper so text looks nice while streaming
-              const streamEl = getStreamEl(aiEl);
-              streamEl.classList.add("markdown-body");
-              streamEl.style.padding = "18px 20px";
-              streamEl.style.borderRadius = "var(--radius)";
-              streamEl.style.border = "1px solid var(--border)";
-              streamEl.style.background = "var(--surface)";
-              streamEl.style.boxShadow = "var(--shadow)";
             }
             fullText += data.text;
             
-            // Temporary trick: Parse the markdown on the fly, but aggressively strip out the raw '## ' headers so they aren't visible to the user while streaming
-            const safeStreamingText = fullText.replace(/## /g, '');
-            getStreamEl(aiEl).innerHTML = formatContent(safeStreamingText) + '<span class="typing-cursor"></span>';
+            // Dynamically parse sections on every token
+            const streamSections = parseSections(fullText, sectionDefs, true);
+            
+            if (streamSections && streamSections.length > 0) {
+               // Render Collapsible UI Cards instantaneously while streaming
+               getStreamEl(aiEl).style.display = 'none';
+               
+               const sectionsEl = getSectionsEl(aiEl);
+               sectionsEl.innerHTML = streamSections.map((s, i) => {
+                  const isLast = i === streamSections.length - 1;
+                  const cursor = isLast ? '<span class="typing-cursor"></span>' : '';
+                  // Render with animations mathematically disabled to prevent frantic flashing during token appends
+                  return `
+                    <div class="section-card ${s.cls}" style="animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important;">
+                      <div class="section-header">
+                        <div class="section-header-left">
+                          <span class="section-header-icon">${s.icon}</span>
+                          <span>${s.label}</span>
+                        </div>
+                        <span class="section-chevron">▼</span>
+                      </div>
+                      <div class="section-body">${formatContent(s.content || '')}${cursor}</div>
+                    </div>
+                  `;
+               }).join('');
+               sectionsEl.style.display = 'flex';
+            } else {
+               // Pre-header streaming fallback: a clean simple block
+               const streamEl = getStreamEl(aiEl);
+               streamEl.classList.add("markdown-body");
+               streamEl.style.padding = "18px 20px";
+               streamEl.style.borderRadius = "var(--radius)";
+               streamEl.style.border = "1px solid var(--border)";
+               streamEl.style.background = "var(--surface)";
+               streamEl.style.boxShadow = "var(--shadow)";
+               
+               streamEl.style.display = 'block';
+               const safeStreamingText = fullText.replace(/## /g, '');
+               streamEl.innerHTML = formatContent(safeStreamingText) + '<span class="typing-cursor"></span>';
+            }
             scrollBottom();
             break;
           case 'done': {
