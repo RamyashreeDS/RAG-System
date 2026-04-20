@@ -376,7 +376,7 @@ function finalizeMessage(el, fullText, retrieved, doneData, sectionDefs) {
       hdr.addEventListener('click', () => hdr.closest('.section-card').classList.toggle('collapsed'));
     });
   } else {
-    sectionsEl.innerHTML = `<div class="msg-stream visible markdown-body" style="display:block; padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: var(--bg-alt);">${formatContent(fullText)}</div>`;
+    sectionsEl.innerHTML = `<div class="msg-stream visible markdown-body" style="display:block; padding: 18px 20px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow);">${formatContent(fullText)}</div>`;
     sectionsEl.style.display = 'block';
   }
 
@@ -924,9 +924,25 @@ async function sendNote() {
             retrieved = data;
             break;
           case 'token':
-            if (!streamStarted) { startStream(aiEl); streamStarted = true; }
+            if (!streamStarted) {
+              startStream(aiEl);
+              streamStarted = true;
+              
+              // Apply safe formatting wrapper so text looks nice while streaming
+              const streamEl = getStreamEl(aiEl);
+              streamEl.classList.add("markdown-body");
+              streamEl.style.padding = "18px 20px";
+              streamEl.style.borderRadius = "var(--radius)";
+              streamEl.style.border = "1px solid var(--border)";
+              streamEl.style.background = "var(--surface)";
+              streamEl.style.boxShadow = "var(--shadow)";
+            }
             fullText += data.text;
-            appendToken(aiEl, data.text);
+            
+            // Temporary trick: Parse the markdown on the fly, but aggressively strip out the raw '## ' headers so they aren't visible to the user while streaming
+            const safeStreamingText = fullText.replace(/## /g, '');
+            getStreamEl(aiEl).innerHTML = formatContent(safeStreamingText) + '<span class="typing-cursor"></span>';
+            scrollBottom();
             break;
           case 'done': {
             finalizeMessage(aiEl, fullText, retrieved, data, sectionDefs);
